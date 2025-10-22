@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skate Scout - Scouting skateboard paths for Aggies!</title>
+  <!-- Poppins Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      overflow-x: hidden;
+    }
+    .container {
+      width: 100%;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    /* Background */
+    .background {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .background-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      /* Using a TAMU campus inspired gradient as fallback */
+      background-image: 
+        linear-gradient(rgba(80, 0, 0, 0.5), rgba(128, 0, 32, 0.6)),
+        url('https://images.unsplash.com/photo-1562774053-701939374585?w=1920&q=80'); /* Campus/skateboard placeholder */
+      filter: saturate(1.6) contrast(1.05) brightness(1.3) blur(8px);
+      transform: scale(1.15);
+      animation: zoomSlow 20s ease-in-out infinite alternate;
+    }
+    .texture-overlay {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.05) 2px,
+        rgba(255,255,255,0.05) 4px
+      );
+      mix-blend-mode: overlay;
+    }
+    .maroon-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom right, rgba(128, 0, 32, 0.3), rgba(160, 48, 74, 0.25), rgba(196, 30, 58, 0.3));
+      mix-blend-mode: multiply;
+    }
+    .paint-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(45, 20, 21, 0.25), transparent, transparent);
+    }
+    .color-pop {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom right, rgba(255, 107, 157, 0.25), rgba(255, 214, 224, 0.2), rgba(255, 184, 198, 0.25));
+      mix-blend-mode: screen;
+    }
+    .light-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    /* Artistic Elements */
+    .artistic-elements {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .circle-top-right {
+      position: absolute;
+      top: -5rem;
+      right: -5rem;
+      width: 24rem;
+      height: 24rem;
+      border-radius: 50%;
+      background: linear-gradient(to bottom right, rgba(255, 107, 157, 0.4), rgba(255, 214, 224, 0.3));
+      filter: blur(80px);
+      animation: pulse 4s ease-in-out infinite;
+    }
+    .circle-bottom-left {
+      position: absolute;
+      bottom: -8rem;
+      left: -8rem;
+      width: 31.25rem;
+      height: 31.25rem;
+      border-radius: 50%;
+      background: linear-gradient(to top right, rgba(128, 0, 32, 0.35), rgba(160, 48, 74, 0.25));
+      filter: blur(64px);
+      animation: pulse 6s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+    .geometric-square {
+      position: absolute;
+      top: 25%;
+      right: 25%;
+      width: 8rem;
+      height: 8rem;
+      border: 4px solid rgba(255, 255, 255, 0.4);
+      border-radius: 0.5rem;
+      transform: rotate(45deg);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    .geometric-circle {
+      position: absolute;
+      bottom: 33.333%;
+      left: 25%;
+      width: 6rem;
+      height: 6rem;
+      background: linear-gradient(to bottom right, rgba(255, 107, 157, 0.3), rgba(255, 214, 224, 0.2));
+      border-radius: 50%;
+      backdrop-filter: blur(4px);
+    }
+    .geometric-small {
+      position: absolute;
+      top: 50%;
+      right: 33.333%;
+      width: 4rem;
+      height: 4rem;
+      border: 3px solid rgba(255, 255, 255, 0.5);
+      transform: rotate(12deg);
+    }
+    /* Main Content */
+    .main-content {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 5rem 1.5rem;
+    }
+    .content-wrapper {
+      max-width: 56rem;
+      margin: 0 auto;
+      text-align: center;
+    }
+    /* Decorative Line */
+    .decorative-line {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    .line {
+      width: 3rem;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+      animation: expand 2s ease-in-out infinite;
+    }
+    .dot {
+      width: 0.625rem;
+      height: 0.625rem;
+      border-radius: 50%;
+      background: linear-gradient(to bottom right, #ff6b9d, white);
+      animation: spin 3s linear infinite;
+    }
+    /* Title */
+    .title {
+      font-size: 4rem;
+      font-weight: 700;
+      background: linear-gradient(to bottom right, white, #ffd6e0, #ffb8c6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.025em;
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+      animation: floatTitle 3s ease-in-out infinite;
+      margin-bottom: 2rem;
+      cursor: default;
+      transition: transform 0.3s ease;
+    }
+    .title:hover {
+      transform: scale(1.05);
+    }
+    /* Subtitle */
+    .subtitle {
+      font-size: 1.5rem;
+      color: #ffffff;
+      text-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 0, 0, 0.5),
+        1px 1px 2px rgba(0, 0, 0, 0.9);
+      max-width: 42rem;
+      margin: 0 auto 2rem;
+      line-height: 1.75;
+      animation: fadeInUp 1s ease-out;
+      cursor: default;
+      transition: transform 0.3s ease;
+      font-weight: 600;
+    }
+    .subtitle:hover {
+      transform: scale(1.05);
+    }
+    /* Button */
+    .button-wrapper {
+      padding-top: 2rem;
+      animation: fadeInUp 1.2s ease-out;
+    }
+    .cta-button {
+      position: relative;
+      background: linear-gradient(to right, #ff6b9d, #e94560, #c41e3a);
+      color: white;
+      font-size: 1.125rem;
+      font-weight: 600;
+      padding: 1.75rem 3rem;
+      border: none;
+      border-radius: 0.5rem;
+      box-shadow: 0 25px 50px -12px rgba(255, 107, 157, 0.5);
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      animation: buttonPulse 2s ease-in-out infinite;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+    .cta-button:hover {
+      background: linear-gradient(to right, #ff8bb5, #ff6b9d, #e94560);
+      box-shadow: 0 25px 50px -12px rgba(255, 107, 157, 0.8);
+      transform: scale(1.1) translateY(-0.25rem);
+    }
+    .button-shine {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transform: translateX(-200%);
+      transition: transform 0.7s ease;
+    }
+    .cta-button:hover .button-shine {
+      transform: translateX(200%);
+    }
+    .button-content {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .arrow-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    .cta-button:hover .arrow-icon {
+      transform: translateX(0.75rem) scale(1.1);
+    }
+    /* Decorative Dots */
+    .decorative-dots {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      padding-top: 3rem;
+    }
+    .bounce-dot {
+      width: 0.375rem;
+      height: 0.375rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.6);
+      animation: bounce 2s ease-in-out infinite;
+    }
+    .bounce-dot:nth-child(2) {
+      background: rgba(255, 255, 255, 0.7);
+      animation-delay: 0.2s;
+    }
+    .bounce-dot:nth-child(3) {
+      background: rgba(255, 255, 255, 0.8);
+      animation-delay: 0.4s;
+    }
+    /* Floating Elements */
+    .floating-element {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(1px);
+    }
+    .float-1 {
+      top: 5rem;
+      left: 2.5rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      background: rgba(255, 255, 255, 0.5);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .float-2 {
+      top: 10rem;
+      right: 5rem;
+      width: 1rem;
+      height: 1rem;
+      background: rgba(255, 107, 157, 0.6);
+      animation: pulse 3s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+    .float-3 {
+      bottom: 10rem;
+      left: 25%;
+      width: 1.5rem;
+      height: 1.5rem;
+      background: rgba(255, 214, 224, 0.5);
+      filter: blur(2px);
+      animation: pulse 2.5s ease-in-out infinite;
+      animation-delay: 2s;
+    }
+    .float-4 {
+      top: 33.333%;
+      left: 33.333%;
+      width: 0.75rem;
+      height: 0.75rem;
+      background: rgba(255, 255, 255, 0.4);
+      animation: bounce 3s ease-in-out infinite;
+    }
+    .float-5 {
+      bottom: 25%;
+      right: 33.333%;
+      width: 1rem;
+      height: 1rem;
+      background: rgba(255, 107, 157, 0.5);
+      filter: blur(1px);
+      animation: bounce 4s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+    .splatter-1 {
+      position: absolute;
+      top: 15rem;
+      right: 10rem;
+      width: 2rem;
+      height: 2rem;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      filter: blur(4px);
+    }
+    .splatter-2 {
+      position: absolute;
+      bottom: 15rem;
+      left: 10rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      background: rgba(255, 214, 224, 0.4);
+      border-radius: 50%;
+      filter: blur(8px);
+    }
+    /* Info text */
+    .info-text {
+      color: #ffffff;
+      text-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 10px rgba(0, 0, 0, 0.5);
+      font-size: 0.875rem;
+      margin-top: 1.5rem;
+      animation: fadeInUp 1.6s ease-out;
+      font-weight: 600;
+    }
+    /* Animations */
+    @keyframes zoomSlow {
+      0% { transform: scale(1.1); }
+      100% { transform: scale(1.15); }
+    }
+    @keyframes floatTitle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes buttonPulse {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 107, 157, 0.5), 0 0 40px rgba(255, 107, 157, 0.3), 0 0 60px rgba(255, 107, 157, 0.2);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(255, 107, 157, 0.7), 0 0 60px rgba(255, 107, 157, 0.5), 0 0 90px rgba(255, 107, 157, 0.3);
+      }
+    }
+    @keyframes expand {
+      0%, 100% {
+        transform: scaleX(1);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scaleX(1.5);
+        opacity: 1;
+      }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+      }
+      50% {
+        transform: translateY(-25%);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+      }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+      .title {
+        font-size: 2.5rem;
+      }
+      .subtitle {
+        font-size: 1.125rem;
+      }
+      .cta-button {
+        padding: 1.25rem 2rem;
+        font-size: 1rem;
+      }
+    }
+    @media (min-width: 768px) {
+      .title {
+        font-size: 5rem;
+      }
+      .subtitle {
+        font-size: 1.875rem;
+      }
+    }
+    @media (min-width: 1024px) {
+      .title {
+        font-size: 6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- SVG Filters -->
+    <svg style="position: absolute; width: 0; height: 0;">
+      <defs>
+        <filter id="cartoonEffect" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+          <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 12 -5" result="edges"/>
+          <feComponentTransfer in="SourceGraphic" result="poster">
+            <feFuncR type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+            <feFuncG type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+            <feFuncB type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+          </feComponentTransfer>
+          <feBlend in="poster" in2="edges" mode="multiply"/>
+        </filter>
+        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color: #ffffff; stop-opacity: 0.6" />
+          <stop offset="50%" style="stop-color: #ffd6e0; stop-opacity: 0.4" />
+          <stop offset="100%" style="stop-color: #ff6b9d; stop-opacity: 0.3" />
+        </linearGradient>
+      </defs>
+    </svg>
+    
+    <!-- Background -->
+    <div class="background">
+      <div class="background-image"></div>
+      <div class="texture-overlay"></div>
+      <div class="maroon-overlay"></div>
+      <div class="paint-overlay"></div>
+      <div class="color-pop"></div>
+      <div class="light-overlay"></div>
+    </div>
+    
+    <!-- Artistic Elements -->
+    <div class="artistic-elements">
+      <div class="circle-top-right"></div>
+      <div class="circle-bottom-left"></div>
+      <div class="geometric-square"></div>
+      <div class="geometric-circle"></div>
+      <div class="geometric-small"></div>
+      <!-- Abstract Lines SVG -->
+      <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.4;" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 0,300 Q 400,100 800,200 T 1600,400" stroke="url(#lineGradient)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M 200,0 Q 600,300 1000,150 T 1800,600" stroke="url(#lineGradient)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M 100,500 Q 300,400 500,450 T 900,500" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="5,5"/>
+        <path d="M 1200,200 Q 1400,350 1600,250" stroke="rgba(255,107,157,0.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="content-wrapper">
+        <!-- Decorative Line -->
+        <div class="decorative-line">
+          <div class="line"></div>
+          <div class="dot"></div>
+          <div class="line"></div>
+        </div>
+        
+        <!-- Title -->
+        <h1 class="title">🛹 Skate Scout</h1>
+        
+        <!-- Subtitle -->
+        <p class="subtitle">Scouting skateboard paths for Aggies!</p>
+        
+        <!-- CTA Button -->
+        <div class="button-wrapper">
+          <a href="C:\Users\timot\Downloads\webdemo\index.html" class="cta-button">
+            <span class="button-shine"></span>
+            <span class="button-content">
+              Find your route
+              <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </span>
+          </a>
+        </div>
+        
+        <p class="info-text">✨ Optimized for Texas A&M University campus</p>
+        
+        <!-- Decorative Dots -->
+        <div class="decorative-dots">
+          <div class="bounce-dot"></div>
+          <div class="bounce-dot"></div>
+          <div class="bounce-dot"></div>
+        </div>
+      </div>
+      
+      <!-- Bottom Gradient -->
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 8rem; background: linear-gradient(to top, rgba(160, 48, 74, 0.1), rgba(128, 0, 32, 0.05), transparent); pointer-events: none;"></div>
+    </div>
+    
+    <!-- Floating Elements -->
+    <div class="floating-element float-1"></div>
+    <div class="floating-element float-2"></div>
+    <div class="floating-element float-3"></div>
+    <div class="floating-element float-4"></div>
+    <div class="floating-element float-5"></div>
+    <div class="splatter-1"></div>
+    <div class="splatter-2"></div>
+  </div>
+</body>
+</html>

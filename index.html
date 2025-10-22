@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skate Scout</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --maroon: #500000;
+            --maroon-dark: #3d0000;
+            --maroon-light: #6b0000;
+            --maroon-glow: rgba(80, 0, 0, 0.3);
+            --gold: #ffb81c;
+            --gold-light: #ffd65d;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-900: #0f172a;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--maroon-glow); }
+            50% { box-shadow: 0 0 30px var(--maroon-glow), 0 0 40px var(--maroon-glow); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #500000 0%, #3d0000 50%, #2a0000 100%);
+            color: var(--slate-900);
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 400px;
+            background: linear-gradient(180deg, #ffffff 0%, #fef7f7 100%);
+            border-right: 3px solid var(--maroon);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(80, 0, 0, 0.2);
+        }
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+            border-bottom: 4px solid var(--gold);
+            position: relative;
+            overflow: hidden;
+            min-height: 130px;
+        }
+        .sidebar-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 184, 28, 0.15) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        .sidebar-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease infinite;
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            position: relative;
+            z-index: 10;
+        }
+        .logo-box {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(255, 184, 28, 0.5);
+            animation: float 3s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        .logo-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        .header-text {
+            flex: 1;
+            min-width: 0;
+        }
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            line-height: 1.3;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
+            letter-spacing: -0.5px;
+            margin-bottom: 0.375rem;
+        }
+        .header-subtitle {
+            font-size: 0.9rem;
+            color: var(--gold-light);
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            line-height: 1.4;
+        }
+        .sidebar-content {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .card {
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out;
+        }
+        .card:hover {
+            border-color: var(--maroon);
+            box-shadow: 0 8px 25px rgba(80, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        .card-header {
+            padding: 1.25rem 1.25rem 1rem;
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            border-radius: 14px 14px 0 0;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .card-description {
+            font-size: 0.875rem;
+            color: var(--gold-light);
+            margin-top: 0.375rem;
+            font-weight: 500;
+        }
+        .card-content {
+            padding: 1.25rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--maroon);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--slate-200);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-family: 'Poppins', sans-serif;
+            background: white;
+            transition: all 0.3s;
+            color: var(--slate-900);
+            font-weight: 500;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--maroon);
+            box-shadow: 0 0 0 4px var(--maroon-glow);
+            transform: translateY(-2px);
+        }
+        .form-input::placeholder {
+            color: var(--slate-400);
+            font-weight: 400;
+        }
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23500000' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 3rem;
+        }
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.3);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 100%);
+            box-shadow: 0 6px 20px rgba(80, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-outline {
+            background: white;
+            color: var(--maroon);
+            border: 2px solid var(--maroon);
+            font-weight: 600;
+        }
+        .btn-outline:hover {
+            background: var(--maroon);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.3);
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 0.5rem;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
+        .btn-report {
+            background: white;
+            color: inherit;
+            border: 2px solid;
+            justify-content: flex-start;
+            margin-bottom: 0.75rem;
+            text-transform: none;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .btn-report:last-child {
+            margin-bottom: 0;
+        }
+        .btn-report.warning {
+            border-color: #fb923c;
+            color: #c2410c;
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        }
+        .btn-report.warning:hover {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(251, 146, 60, 0.3);
+        }
+        .btn-report.warning.active {
+            background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+            color: white;
+            border-color: #f97316;
+            transform: translateX(8px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(251, 146, 60, 0.5);
+        }
+        .btn-report.success {
+            border-color: #4ade80;
+            color: #15803d;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+        .btn-report.success:hover {
+            background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(74, 222, 128, 0.3);
+        }
+        .btn-report.success.active {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            border-color: #22c55e;
+            transform: translateX(8px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(74, 222, 128, 0.5);
+        }
+        .btn-report.danger {
+            border-color: #f87171;
+            color: #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+        .btn-report.danger:hover {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(248, 113, 113, 0.3);
+        }
+        .btn-report.neutral {
+            border-color: var(--maroon);
+            color: var(--maroon);
+            background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        }
+        .btn-report.neutral:hover {
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            color: white;
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.3);
+        }
+        .badge {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            color: var(--maroon-dark);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: auto;
+            box-shadow: 0 2px 8px rgba(255, 184, 28, 0.4);
+        }
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        .switch-container:hover {
+            background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+            transform: translateX(4px);
+        }
+        .switch-container:last-child {
+            margin-bottom: 0;
+        }
+        .switch-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--maroon);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            background: var(--slate-300);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .switch.active {
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            box-shadow: 0 0 15px var(--maroon-glow);
+        }
+        .switch-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .switch.active .switch-thumb {
+            transform: translateX(24px);
+            background: var(--gold);
+        }
+        .loading {
+            text-align: center;
+            padding: 1rem;
+            color: var(--maroon);
+            display: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .loading.active {
+            display: block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: none;
+            border-left: 4px solid #dc2626;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+        .error.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        .success {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: none;
+            border-left: 4px solid #22c55e;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+        .success.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        .route-results {
+            display: none;
+        }
+        .route-results.active {
+            display: block;
+        }
+        .elevation-summary {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .elevation-bar {
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .elevation-difficulty {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .elevation-details {
+            margin-top: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--slate-600);
+            font-weight: 500;
+        }
+        .path-type {
+            background: linear-gradient(135deg, white 0%, #fef2f2 100%);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            border-left: 5px solid var(--maroon);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(80, 0, 0, 0.1);
+        }
+        .path-type:hover {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.2);
+        }
+        .path-type.active {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            border-left-color: #22c55e;
+            transform: translateX(8px) scale(1.03);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+        .path-type.blocked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .path-type h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--maroon);
+            margin-bottom: 0.5rem;
+        }
+        .path-stats {
+            font-size: 0.8125rem;
+            color: var(--slate-600);
+            font-weight: 500;
+        }
+        .legend-group {
+            margin-bottom: 1rem;
+        }
+        .legend-group:last-child {
+            margin-bottom: 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .legend-item:hover {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            transform: translateX(4px);
+        }
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        .legend-icon-group {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            width: 48px;
+        }
+        .legend-line {
+            height: 3px;
+            width: 32px;
+            border-radius: 9999px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .legend-text {
+            font-size: 0.875rem;
+            color: var(--maroon);
+            font-weight: 600;
+        }
+        .separator {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--maroon) 50%, transparent 100%);
+            margin: 1rem 0;
+        }
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 1000;
+        }
+        .map-control-btn {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, white 0%, #fef2f2 100%);
+            border: 2px solid var(--maroon);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--maroon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(80, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+        .map-control-btn:hover {
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(80, 0, 0, 0.4);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(80, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(80, 0, 0, 0.3);
+            border: 3px solid var(--maroon);
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--maroon);
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .modal-description {
+            font-size: 0.95rem;
+            color: var(--slate-600);
+            margin-bottom: 2rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        .rating-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .rating-btn {
+            flex: 1;
+            padding: 1.25rem 0.5rem;
+            border: 3px solid var(--slate-200);
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .rating-btn:hover {
+            border-color: var(--maroon);
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px var(--maroon-glow);
+        }
+        .rating-btn.selected {
+            border-color: var(--maroon);
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px var(--maroon-glow);
+        }
+        .rating-btn.selected .rating-number {
+            color: white;
+        }
+        .rating-btn.selected .rating-emoji {
+            filter: brightness(0) invert(1);
+        }
+        .rating-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--maroon);
+            display: block;
+        }
+        .rating-emoji {
+            font-size: 2rem;
+            display: block;
+            margin-top: 0.25rem;
+        }
+        .reporting-indicator {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+            color: white;
+            padding: 1.25rem 2.5rem;
+            border-radius: 50px;
+            box-shadow: 0 8px 30px rgba(80, 0, 0, 0.5);
+            z-index: 1500;
+            display: none;
+            align-items: center;
+            gap: 1.5rem;
+            border: 3px solid var(--gold);
+            animation: glow 2s ease-in-out infinite;
+        }
+        .reporting-indicator.active {
+            display: flex;
+        }
+        .reporting-indicator-text {
+            font-weight: 700;
+            font-size: 1rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        .reporting-indicator-cancel {
+            background: white;
+            color: var(--maroon);
+            border: none;
+            padding: 0.625rem 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        .reporting-indicator-cancel:hover {
+            background: var(--gold);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 184, 28, 0.5);
+        }
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 50vh;
+            }
+            .header-title {
+                font-size: 1.2rem;
+            }
+            .header-subtitle {
+                font-size: 0.8rem;
+            }
+            .logo-box {
+                width: 50px;
+                height: 50px;
+            }
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #fef2f2;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--maroon-dark);
+        }
+        .popup-delete-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .popup-delete-btn:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="header-content">
+                    <div class="logo-box">
+                        <span class="logo-icon">🛹</span>
+                    </div>
+                    <div class="header-text">
+                        <h1 class="header-title">Skate Scout</h1>
+                        <p class="header-subtitle">Find the smoothest skateboard routes on campus</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📍 Route Planning</div>
+                        <div class="card-description">Enter your start and end points</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label class="form-label" for="start">Starting Point</label>
+                            <input type="text" id="start" class="form-input" placeholder="e.g., Zachry Engineering">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="end">Destination</label>
+                            <input type="text" id="end" class="form-input" placeholder="e.g., Memorial Student Center">
+                        </div>
+                        <div class="btn-group">
+                            <button id="find-route-btn" class="btn btn-primary">🔍 Find Routes</button>
+                            <button id="clear-btn" class="btn btn-outline">✨ Clear</button>
+                        </div>
+                        <div class="loading" id="loading">🔄 Finding routes...</div>
+                        <div class="error" id="error"></div>
+                        <div class="success" id="success"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚠️ Report Issues</div>
+                        <div class="card-description">Help improve routes for everyone</div>
+                    </div>
+                    <div class="card-content">
+                        <button id="report-construction-btn" class="btn btn-report warning">🚧 Report Construction</button>
+                        <button id="report-blocked-btn" class="btn btn-report warning">🚫 Report Blocked Path</button>
+                        <button id="rate-smoothness-btn" class="btn btn-report warning">⭐ Rate Smoothness</button>
+                        <button id="report-congestion-btn" class="btn btn-report warning">🚶 Report Congestion</button>
+                        <div class="separator"></div>
+                        <button id="delete-report-btn" class="btn btn-report danger">🗑️ Delete Last Report</button>
+                        <button id="view-reports-btn" class="btn btn-report neutral">📋 View All Reports<span class="badge" id="reports-count">0</span></button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🅿️ Parking Racks</div>
+                        <div class="card-description">Toggle rack visibility</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="switch-container">
+                            <div class="switch-label"><span>🚲</span><span>Bike Racks</span></div>
+                            <div class="switch active" id="bike-rack-switch"><div class="switch-thumb"></div></div>
+                        </div>
+                        <div class="switch-container">
+                            <div class="switch-label"><span>🛹</span><span>Skateboard Racks</span></div>
+                            <div class="switch active" id="skateboard-rack-switch"><div class="switch-thumb"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card route-results" id="route-results">
+                    <div class="card-header">
+                        <div class="card-title">🗺️ Available Routes</div>
+                        <div class="card-description">Click to view on map</div>
+                    </div>
+                    <div class="card-content">
+                        <div id="elevation-display"></div>
+                        <div id="path-types"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🗺️ Map Legend</div>
+                        <div class="card-description">Route types & markers</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="legend-group">
+                            <div class="legend-item">
+                                <div class="legend-icon-group"><span style="color: #2563eb;">🏃</span><div class="legend-line" style="background: #2563eb;"></div></div>
+                                <span class="legend-text">Shortest Path</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-icon-group"><span style="color: #0891b2;">🛡️</span><div class="legend-line" style="background: #0891b2;"></div></div>
+                                <span class="legend-text">Safest Path</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-icon-group"><span style="color: #ca8a04;">🌊</span><div class="legend-line" style="background: #ca8a04;"></div></div>
+                                <span class="legend-text">Smoothest Path</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-icon-group"><span style="color: #6b7280;">⚖️</span><div class="legend-line" style="background: #6b7280;"></div></div>
+                                <span class="legend-text">Balanced Path</span>
+                            </div>
+                            
+                        </div>
+                        <div class="separator"></div>
+                        <div class="legend-group">
+                            <div class="legend-item"><span style="font-size: 1.25rem;">🚧</span><span class="legend-text">Construction</span></div>
+                            <div class="legend-item"><span style="font-size: 1.25rem;">🚫</span><span class="legend-text">Blocked Path</span></div>
+                            <div class="legend-item"><span style="font-size: 1.25rem;">⭐</span><span class="legend-text">Smoothness Rating</span></div>
+                            <div class="legend-item"><span style="font-size: 1.25rem;">🚲</span><span class="legend-text">Bike Rack</span></div>
+                            <div class="legend-item"><span style="font-size: 1.25rem;">🛹</span><span class="legend-text">Skateboard Rack</span></div>
+                            <div class="legend-item"><span style="font-size: 1.25rem;">🚶</span><span class="legend-text">Congestion Report</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-control-btn" id="zoom-in">+</button>
+                <button class="map-control-btn" id="zoom-out">−</button>
+            </div>
+            <div id="reporting-indicator" class="reporting-indicator">
+                <span class="reporting-indicator-text" id="reporting-text">📍 Click on map to place report</span>
+                <button class="reporting-indicator-cancel" id="cancel-reporting-btn">Cancel</button>
+            </div>
+        </main>
+    </div>
+    <div id="smoothness-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">⭐ Rate Path Smoothness</h3>
+            <p class="modal-description">How smooth is this path? (1 = Very Rough, 5 = Very Smooth)</p>
+            <div class="rating-buttons">
+                <button class="rating-btn" data-rating="1"><span class="rating-number">1</span><span class="rating-emoji">😖</span></button>
+                <button class="rating-btn" data-rating="2"><span class="rating-number">2</span><span class="rating-emoji">😕</span></button>
+                <button class="rating-btn" data-rating="3"><span class="rating-number">3</span><span class="rating-emoji">😐</span></button>
+                <button class="rating-btn" data-rating="4"><span class="rating-number">4</span><span class="rating-emoji">🙂</span></button>
+                <button class="rating-btn" data-rating="5"><span class="rating-number">5</span><span class="rating-emoji">😄</span></button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline" id="close-modal">Cancel</button>
+                <button class="btn btn-primary" id="submit-rating">Submit Rating</button>
+            </div>
+        </div>
+    </div>
+    <div id="congestion-modal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title">🚶 Report Path Congestion</h3>
+        <p class="modal-description">How crowded is this path? (1 = Empty, 5 = Very Crowded)</p>
+        <div class="rating-buttons">
+            <button class="rating-btn congestion-btn" data-congestion="1">
+                <span class="rating-number">1</span>
+                <span class="rating-emoji">😌</span>
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px;">Empty</span>
+            </button>
+            <button class="rating-btn congestion-btn" data-congestion="2">
+                <span class="rating-number">2</span>
+                <span class="rating-emoji">🙂</span>
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px;">Light</span>
+            </button>
+            <button class="rating-btn congestion-btn" data-congestion="3">
+                <span class="rating-number">3</span>
+                <span class="rating-emoji">😐</span>
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px;">Moderate</span>
+            </button>
+            <button class="rating-btn congestion-btn" data-congestion="4">
+                <span class="rating-number">4</span>
+                <span class="rating-emoji">😟</span>
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px;">Busy</span>
+            </button>
+            <button class="rating-btn congestion-btn" data-congestion="5">
+                <span class="rating-number">5</span>
+                <span class="rating-emoji">😫</span>
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px;">Packed</span>
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline" id="close-congestion-modal">Cancel</button>
+            <button class="btn btn-primary" id="submit-congestion">Submit Report</button>
+        </div>
+    </div>
+</div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, routeLayers = {}, reportMarkers = [], localReports = [], currentReportMarker = null, reportingMode = null, selectedRating = null, selectedCongestion = null, bikeRackMarkers = [], skateboardRackMarkers = [], currentWeather = 'dry', startEndMarkers = [];
+
+        const routeColors = {
+            shortestPath: '#2563eb',
+            safestPath: '#0891b2',
+            smoothestPath: '#ca8a04',
+            balancedPath: '#6b7280',
+            singleTurnPath: '#dc2626'
+        };
+        
+        const routeNames = {
+            shortestPath: '🏃 Shortest Path',
+            safestPath: '🛡️ Safest Path',
+            smoothestPath: '🌊 Smoothest Path',
+            balancedPath: '⚖️ Balanced Path',
+            singleTurnPath: '🎯 Single Turn Path'
+        };
+        
+        const bikeRacks = [
+            {lat: 30.6233487, lng: -96.3372908, name: "Polo Garage"},
+           {lat: 30.6224814, lng: -96.3377252, name: "Polo Road Rec Center"},
+           {lat: 30.6230737, lng: -96.3391709, name: "Emerging Technologies North"},
+           {lat: 30.6222002, lng: -96.3384187, name: "Emerging Technologies East"},
+           {lat: 30.6225370, lng: -96.3398458, name: "Emerging Technologies West"},
+           {lat: 30.6219686, lng: -96.3403825, name: "Zachery North"},
+           {lat: 30.6212542, lng: -96.3395487, name: "Zachery East"},
+           {lat: 30.6205917, lng: -96.3404337, name: "Zachery South"},
+           {lat: 30.6212451, lng: -96.3411214, name: "Zachery West"},
+           {lat: 30.6207432, lng: -96.3384913, name: "Wisenbaker"},
+           {lat: 30.6210767, lng: -96.3381562, name: "Wisenbaker Bus Stop"},
+           {lat: 30.6205642, lng: -96.3358820, name: "Bonfire Memorial"},
+           {lat: 30.6202873, lng: -96.3390841, name: "CVE Lab North"},
+           {lat: 30.6199232, lng: -96.3393512, name: "CVE Lab South"},
+           {lat: 30.6201979, lng: -96.3394699, name: "CVE Lab West"},
+           {lat: 30.6201979, lng: -96.3394699, name: "Dwight Look and CVE Lab"},
+           {lat: 30.6198919, lng: -96.3389235, name: "Haynes Engineering"},
+           {lat: 30.6194031, lng: -96.3391009, name: "Richardson Petroleum"},
+           {lat: 30.6206951, lng: -96.3414634, name: "Jack E. Brown Chemical"},
+           {lat: 30.6200591, lng: -96.3418965, name: "Lot 5"},
+           {lat: 30.6190065, lng: -96.3419611, name: "Blocker South"},
+           {lat: 30.6193766, lng: -96.3414036, name: "Blocker East"},
+           {lat: 30.6196611, lng: -96.3427806, name: "Blocker West"},
+           {lat: 30.6198769, lng: -96.3429837, name: "Mitchell"},
+           {lat: 30.6194874, lng: -96.3412201, name: "Cain and Walker"},
+           {lat: 30.6195801, lng: -96.3407569, name: "Cain, Walker, and MEOB"},
+           {lat: 30.6192997, lng: -96.3405005, name: "MEOB, Doherty, and Berg-Hughes"},
+           {lat: 30.6189929, lng: -96.3411250, name: "Berg-Hughes West"},
+           {lat: 30.6185615, lng: -96.3406087, name: "Berg-Hughes and Reed-McDonald"},
+           {lat: 30.6180464, lng: -96.3411045, name: "Reed-McDonald"},
+           {lat: 30.6185316, lng: -96.3436364, name: "Northside Garage"},
+           {lat: 30.6169997, lng: -96.3432327, name: "Sbisa East"},
+           {lat: 30.6168486, lng: -96.3440211, name: "Sbisa West"},
+           {lat: 30.6178640, lng: -96.3442697, name: "Neely and Hobby Hall"},
+           {lat: 30.6183130, lng: -96.3445608, name: "Hotard Hall"},
+           {lat: 30.6179538, lng: -96.3450364, name: "USPS"},
+           {lat: 30.6167410, lng: -96.3342299, name: "Golf Clubhouse"},
+           {lat: 30.6161422, lng: -96.3340138, name: "South Side Rec Center"},
+        ];
+        
+        const skateboardRacks = [
+            {lat: 30.6228538, lng: -96.3383479, name: "Polo Road Rec Center"},
+            {lat: 30.6139551, lng: -96.3411009, name: "Student Services Building"},
+            {lat: 30.6160768, lng: -96.3340057, name: "South Side Rec Center"},
+            {lat: 30.6075568, lng: -96.3429067, name: "Student Rec Center"},
+        ];
+        
+        function showMessage(id, msg, dur = 5000) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = msg;
+                el.classList.add('active');
+                setTimeout(() => el.classList.remove('active'), dur);
+            }
+        }
+        
+        function showError(msg) { showMessage('error', msg); }
+        function showSuccess(msg) { showMessage('success', msg); }
+        
+        function decodePolyline(e) {
+            if (!e) return [];
+            let p = [], i = 0, lat = 0, lng = 0;
+            while (i < e.length) {
+                let b, s = 0, r = 0;
+                do { b = e.charCodeAt(i++) - 63; r |= (b & 0x1f) << s; s += 5; } while (b >= 0x20);
+                lat += ((r & 1) ? ~(r >> 1) : (r >> 1));
+                s = 0; r = 0;
+                do { b = e.charCodeAt(i++) - 63; r |= (b & 0x1f) << s; s += 5; } while (b >= 0x20);
+                lng += ((r & 1) ? ~(r >> 1) : (r >> 1));
+                p.push([lat / 1e5, lng / 1e5]);
+            }
+            return p;
+        }
+        
+        function initMap() {
+            map = L.map('map', { center: [30.6187, -96.3365], zoom: 15, zoomControl: false });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            map.on('click', handleMapClick);
+            setTimeout(() => map.invalidateSize(), 100);
+            console.log('✅ Map initialized');
+        }
+        
+        async function fetchRoutes(s, e) {
+            const r = await fetch('http://localhost:3000/api/routes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start: s, end: e, reports: localReports })
+            });
+            if (!r.ok) throw new Error('Failed to fetch routes');
+            return await r.json();
+        }
+        
+        function displayRoute(k, d, c) {
+            if (routeLayers[k]) map.removeLayer(routeLayers[k]);
+            const co = decodePolyline(d.polyline);
+            if (!co.length) return;
+            
+            const p = L.polyline(co, { color: c, weight: 6, opacity: 0.8 });
+            p.bindPopup(`<strong>${routeNames[k]}</strong><br>Distance: ${d.distance.toFixed(2)} km<br>Time: ${d.skateTime.toFixed(1)} min<br>Turns: ${d.numTurns}${d.blocked ? '<br>⚠️ Has obstacles' : ''}`);
+            routeLayers[k] = p;
+        }
+        
+        function showRoute(k) {
+            Object.values(routeLayers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+            if (routeLayers[k]) {
+                routeLayers[k].addTo(map);
+                map.fitBounds(routeLayers[k].getBounds(), { padding: [50, 50] });
+            }
+            document.querySelectorAll('.path-type').forEach(e => e.classList.remove('active'));
+            const a = document.querySelector(`[data-route="${k}"]`);
+            if (a) a.classList.add('active');
+        }
+        
+        function displayRouteOptions(routes) {
+    const pathTypesDiv = document.getElementById('path-types');
+    const elevationDiv = document.getElementById('elevation-display');
+    
+    pathTypesDiv.innerHTML = '';
+    elevationDiv.innerHTML = '';
+    
+    // Display elevation ONCE at the top
+    const firstRoute = routes.shortestPath || routes.safestPath;
+    if (firstRoute && firstRoute.elevation && firstRoute.elevation.difficulty) {
+        const elevation = firstRoute.elevation;
+        const elevationIcon = elevation.direction === 'uphill' ? '⬆️' : elevation.direction === 'downhill' ? '⬇️' : '➡️';
+        
+        elevationDiv.innerHTML = `
+            <div class="elevation-summary">
+                <div class="elevation-bar" style="background: ${elevation.difficultyColor}22; border-left: 3px solid ${elevation.difficultyColor};">
+                    ${elevationIcon} <strong>Elevation Change:</strong>
+                    <span class="elevation-difficulty" style="background: ${elevation.difficultyColor};">
+                        ${elevation.difficulty.toUpperCase()}
+                    </span>
+                    <div class="elevation-details">
+                        ${elevation.difference > 0 ? '+' : ''}${elevation.difference}m 
+                        (${elevation.startElevation}m → ${elevation.endElevation}m)
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Display routes WITH calorie estimation
+    const routeOrder = ['shortestPath', 'safestPath', 'smoothestPath', 'balancedPath'];
+    
+    routeOrder.forEach(routeKey => {
+        const routeData = routes[routeKey];
+        if (!routeData) return;
+        
+        const pathDiv = document.createElement('div');
+        pathDiv.className = 'path-type';
+        pathDiv.setAttribute('data-route', routeKey);
+        
+        if (routeData.blocked) {
+            pathDiv.classList.add('blocked');
+        }
+        
+        let extraInfo = '';
+        if (routeData.type === 'waypoint') {
+            extraInfo = ` (${routeData.description || 'Waypoint'})`;
+        }
+        
+        const timeDisplay = routeData.skateTime || routeData.duration || 0;
+        
+        // ⭐ CALORIE DISPLAY - Now included!
+        const calorieDisplay = routeData.calories ? `<br>🔥 ${routeData.calories} cal` : '';
+
+        // After the calorie display line:
+let congestionWarning = '';
+if (routeData.hasCongestion) {
+    const delayPercent = Math.round((routeData.congestionMultiplier - 1) * 100);
+    congestionWarning = `<br><strong style="color: #f59e0b;">🚶 Congested (+${delayPercent}% time)</strong>`;
+}
+
+pathDiv.innerHTML = `
+    <h4>${routeNames[routeKey]}${routeData.blocked ? '⚠️' : ''}</h4>
+    <div class="path-stats">
+        ${routeData.distance.toFixed(2)} km · 
+        ${timeDisplay.toFixed(1)} min · 
+        ${routeData.numTurns} turn${routeData.numTurns !== 1 ? 's' : ''}${calorieDisplay}
+        ${congestionWarning}
+        ${routeData.blocked ? '<br><strong style="color: #dc2626;">⚠️ BLOCKED/CONSTRUCTION</strong>' : ''}
+    </div>
+`;
+        
+        pathDiv.innerHTML = `
+            <h4>${routeNames[routeKey]} ${routeData.blocked ? '⚠️' : ''}</h4>
+            <div class="path-stats">
+                ${routeData.distance.toFixed(2)} km · 
+                ${timeDisplay.toFixed(1)} min · 
+                ${routeData.numTurns} turn${routeData.numTurns !== 1 ? 's' : ''}
+                ${calorieDisplay}
+                ${routeData.blocked ? '<br><strong style="color: #dc2626;">⚠️ BLOCKED/CONSTRUCTION</strong>' : ''}
+            </div>
+        `;
+        
+        if (!routeData.blocked) {
+            pathDiv.addEventListener('click', () => showRoute(routeKey));
+        }
+        
+        pathTypesDiv.appendChild(pathDiv);
+    });
+}
+        
+        function enableReportMode(t) {
+            reportingMode = t;
+            document.querySelectorAll('.btn-report').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`report-${t}-btn`);
+            if (btn) btn.classList.add('active');
+            const ind = document.getElementById('reporting-indicator');
+            const txt = document.getElementById('reporting-text');
+            if (ind && txt) {
+                const ic = { construction: '🚧', blocked: '🚫', smoothness: '⭐' };
+                txt.textContent = `${ic[t]} Click map to place ${t} report`;
+                ind.classList.add('active');
+            }
+            if (map) map.getContainer().style.cursor = 'crosshair';
+            console.log('Report mode:', t);
+        }
+        
+        function cancelReportMode() {
+            reportingMode = null;
+            document.querySelectorAll('.btn-report').forEach(b => b.classList.remove('active'));
+            const ind = document.getElementById('reporting-indicator');
+            if (ind) ind.classList.remove('active');
+            if (map) map.getContainer().style.cursor = '';
+            if (currentReportMarker && map) {
+                map.removeLayer(currentReportMarker);
+                currentReportMarker = null;
+            }
+        }
+        
+        function handleMapClick(e) {
+    if (!reportingMode) return;
+    const { lat, lng } = e.latlng;
+    if (currentReportMarker) map.removeLayer(currentReportMarker);
+    const ic = getReportIcon(reportingMode);
+    currentReportMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+            html: `<div style="font-size:28px;">${ic}</div>`,
+            className: '',
+            iconSize: [35, 35]
+        })
+    }).addTo(map);
+    if (reportingMode === 'smoothness') {
+        document.getElementById('reporting-indicator').classList.remove('active');
+        document.getElementById('smoothness-modal').classList.add('active');
+    } else if (reportingMode === 'congestion') {
+        document.getElementById('reporting-indicator').classList.remove('active');
+        document.getElementById('congestion-modal').classList.add('active');
+    } else {
+        saveReport(lat, lng, reportingMode, null);
+    }
+}
+        
+        function getReportIcon(t) {
+    const ic = { 
+        construction: '🚧', 
+        blocked: '🚫', 
+        smoothness: '⭐',
+        congestion: '🚶'
+    };
+    return ic[t] || '📍';
+}
+        
+        function saveReport(la, ln, t, r) {
+    const rep = { 
+        lat: la, 
+        lng: ln, 
+        type: t, 
+        rating: r, 
+        congestion: r, // for congestion reports
+        timestamp: new Date().toISOString(), 
+        id: Date.now() 
+    };
+    localReports.push(rep);
+    localStorage.setItem('pathReports', JSON.stringify(localReports));
+    
+    const ic = getReportIcon(t);
+    const m = L.marker([la, ln], {
+        icon: L.divIcon({
+            html: `<div style="font-size:28px;">${ic}</div>`,
+            className: '',
+            iconSize: [35, 35]
+        }),
+        reportId: rep.id
+    }).addTo(map);
+    
+    let pc = `<strong style="font-family:Poppins;">${t.toUpperCase()}</strong><br>`;
+    if (t === 'smoothness' && r) {
+        pc += `Rating: ${'⭐'.repeat(r)} (${r}/5)<br>`;
+    } else if (t === 'congestion' && r) {
+        const congestionLabels = ['', 'Empty', 'Light', 'Moderate', 'Busy', 'Packed'];
+        pc += `Congestion: ${'🚶'.repeat(r)} (${congestionLabels[r]})<br>`;
+    }
+    pc += `Time: ${new Date(rep.timestamp).toLocaleTimeString()}<br><button class="popup-delete-btn" onclick="deleteReportById(${rep.id})">Delete</button>`;
+    m.bindPopup(pc);
+    reportMarkers.push(m);
+    document.getElementById('reports-count').textContent = localReports.length;
+    
+    fetch('http://localhost:3000/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rep)
+    }).catch(e => console.error(e));
+    
+    showSuccess(`${t} report saved!`);
+    cancelReportMode();
+}
+        
+        function selectRating(r) {
+            selectedRating = r;
+            document.querySelectorAll('.rating-btn').forEach(b => {
+                const br = parseInt(b.getAttribute('data-rating'));
+                b.classList.toggle('selected', br === r);
+            });
+        }
+        
+        function submitRating() {
+            if (!selectedRating || !currentReportMarker) {
+                showError('Please select rating');
+                return;
+            }
+            const { lat, lng } = currentReportMarker.getLatLng();
+            saveReport(lat, lng, 'smoothness', selectedRating);
+            closeModal();
+        }
+
+        function selectCongestion(c) {
+    selectedCongestion = c;
+    document.querySelectorAll('.congestion-btn').forEach(b => {
+        const bc = parseInt(b.getAttribute('data-congestion'));
+        b.classList.toggle('selected', bc === c);
+    });
+}
+
+function submitCongestion() {
+    if (!selectedCongestion || !currentReportMarker) {
+        showError('Please select congestion level');
+        return;
+    }
+    const { lat, lng } = currentReportMarker.getLatLng();
+    saveReport(lat, lng, 'congestion', selectedCongestion);
+    closeCongestionModal();
+}
+
+function closeCongestionModal() {
+    document.getElementById('congestion-modal').classList.remove('active');
+    selectedCongestion = null;
+    document.querySelectorAll('.congestion-btn').forEach(b => b.classList.remove('selected'));
+    if (currentReportMarker) {
+        map.removeLayer(currentReportMarker);
+        currentReportMarker = null;
+    }
+    cancelReportMode();
+}
+        
+        function closeModal() {
+            document.getElementById('smoothness-modal').classList.remove('active');
+            selectedRating = null;
+            document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+            if (currentReportMarker) {
+                map.removeLayer(currentReportMarker);
+                currentReportMarker = null;
+            }
+            cancelReportMode();
+        }
+        
+        function deleteReportById(id) {
+    const i = localReports.findIndex(r => r.id === id);
+    if (i !== -1) localReports.splice(i, 1);
+    const mi = reportMarkers.findIndex(m => m.options.reportId === id);
+    if (mi !== -1) {
+        map.removeLayer(reportMarkers[mi]);
+        reportMarkers.splice(mi, 1);
+    }
+    localStorage.setItem('pathReports', JSON.stringify(localReports));
+    document.getElementById('reports-count').textContent = localReports.length;
+    
+    // ⭐ NOTIFY SERVER TO DELETE REPORT
+    fetch('http://localhost:3000/api/reports/' + id, {
+        method: 'DELETE',
+    }).catch(e => console.error('Error deleting report from server:', e));
+    
+    showSuccess('Report deleted');
+}
+        
+        function deleteLastReport() {
+            if (!localReports.length) {
+                showError('No reports');
+                return;
+            }
+            deleteReportById(localReports[localReports.length - 1].id);
+        }
+        
+        function viewAllReports() {
+            if (!localReports.length) {
+                showError('No reports');
+                return;
+            }
+            const s = {};
+            localReports.forEach(r => s[r.type] = (s[r.type] || 0) + 1);
+            let msg = `Total: ${localReports.length}\n\n`;
+            Object.entries(s).forEach(([t, c]) => msg += `${getReportIcon(t)} ${t}: ${c}\n`);
+            alert(msg);
+        }
+        
+        function toggleBikeRacks(s) {
+            if (s) {
+                bikeRacks.forEach(r => {
+                    const m = L.marker([r.lat, r.lng], {
+                        icon: L.divIcon({
+                            html: '<div style="font-size:24px;">🚲</div>',
+                            className: '',
+                            iconSize: [30, 30]
+                        })
+                    }).addTo(map);
+                    m.bindPopup(`<strong>🚲 Bike Rack</strong><br>${r.name}`);
+                    bikeRackMarkers.push(m);
+                });
+            } else {
+                bikeRackMarkers.forEach(m => map.removeLayer(m));
+                bikeRackMarkers = [];
+            }
+        }
+        
+        function toggleSkateboardRacks(s) {
+            if (s) {
+                skateboardRacks.forEach(r => {
+                    const m = L.marker([r.lat, r.lng], {
+                        icon: L.divIcon({
+                            html: '<div style="font-size:24px;">🛹</div>',
+                            className: '',
+                            iconSize: [30, 30]
+                        })
+                    }).addTo(map);
+                    m.bindPopup(`<strong>🛹 Skateboard Rack</strong><br>${r.name}`);
+                    skateboardRackMarkers.push(m);
+                });
+            } else {
+                skateboardRackMarkers.forEach(m => map.removeLayer(m));
+                skateboardRackMarkers = [];
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            
+            // Load saved reports
+            const saved = localStorage.getItem('pathReports');
+            if (saved) {
+                localReports = JSON.parse(saved);
+                localReports.forEach(rep => {
+                    const ic = getReportIcon(rep.type);
+                    const m = L.marker([rep.lat, rep.lng], {
+                        icon: L.divIcon({
+                            html: `<div style="font-size:28px;">${ic}</div>`,
+                            className: '',
+                            iconSize: [35, 35]
+                        }),
+                        reportId: rep.id
+                    }).addTo(map);
+                    let pc = `<strong>${rep.type.toUpperCase()}</strong><br>`;
+                    if (rep.rating) pc += `Rating: ${'⭐'.repeat(rep.rating)}<br>`;
+                    pc += `<button class="popup-delete-btn" onclick="deleteReportById(${rep.id})">Delete</button>`;
+                    m.bindPopup(pc);
+                    reportMarkers.push(m);
+                });
+                document.getElementById('reports-count').textContent = localReports.length;
+            }
+            
+            document.getElementById('start').value = 'Zachry Engineering, College Station, TX';
+            document.getElementById('end').value = 'Memorial Student Center, College Station, TX';
+            
+            document.getElementById('find-route-btn').addEventListener('click', async function() {
+                const s = document.getElementById('start').value.trim();
+                const e = document.getElementById('end').value.trim();
+                if (!s || !e) {
+                    showError('Enter both locations');
+                    return;
+                }
+                
+                // Clear previous routes
+                Object.values(routeLayers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+                routeLayers = {};
+                startEndMarkers.forEach(m => map.removeLayer(m));
+                startEndMarkers = [];
+                
+                document.getElementById('loading').classList.add('active');
+                this.disabled = true;
+                
+                try {
+                    const routes = await fetchRoutes(s, e);
+                    
+                    Object.keys(routeColors).forEach(k => {
+                        if (routes[k]) displayRoute(k, routes[k], routeColors[k]);
+                    });
+                    
+                    displayRouteOptions(routes);
+                    
+                    // Add start/end markers
+                    const firstRoute = routes.shortestPath;
+                    if (firstRoute) {
+                        const coords = decodePolyline(firstRoute.polyline);
+                        if (coords.length >= 2) {
+                            const sm = L.marker(coords[0], {
+                                icon: L.divIcon({
+                                    html: '<div style="background:#4ade80;width:35px;height:35px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
+                                    iconSize: [35, 35]
+                                })
+                            }).addTo(map);
+                            sm.bindPopup(`<strong>Start:</strong><br>${s}`);
+                            startEndMarkers.push(sm);
+                            
+                            const em = L.marker(coords[coords.length - 1], {
+                                icon: L.divIcon({
+                                    html: '<div style="background:#f87171;width:35px;height:35px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
+                                    iconSize: [35, 35]
+                                })
+                            }).addTo(map);
+                            em.bindPopup(`<strong>End:</strong><br>${e}`);
+                            startEndMarkers.push(em);
+                        }
+                    }
+                    
+                    document.getElementById('route-results').classList.add('active');
+                    showRoute('shortestPath');
+                    showSuccess('Routes found successfully!');
+                } catch (err) {
+                    console.error(err);
+                    showError('Failed to fetch routes. Check server.');
+                } finally {
+                    document.getElementById('loading').classList.remove('active');
+                    this.disabled = false;
+                }
+            });
+            
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                Object.values(routeLayers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+                routeLayers = {};
+                startEndMarkers.forEach(m => map.removeLayer(m));
+                startEndMarkers = [];
+                document.getElementById('start').value = '';
+                document.getElementById('end').value = '';
+                document.getElementById('route-results').classList.remove('active');
+                showSuccess('Routes cleared');
+            });
+            
+            document.getElementById('report-construction-btn').addEventListener('click', () => enableReportMode('construction'));
+            document.getElementById('report-blocked-btn').addEventListener('click', () => enableReportMode('blocked'));
+            document.getElementById('rate-smoothness-btn').addEventListener('click', () => enableReportMode('smoothness'));
+            document.getElementById('delete-report-btn').addEventListener('click', deleteLastReport);
+            document.getElementById('view-reports-btn').addEventListener('click', viewAllReports);
+            document.getElementById('cancel-reporting-btn').addEventListener('click', cancelReportMode);
+            
+            document.querySelectorAll('.rating-btn').forEach(b => b.addEventListener('click', function() {
+                selectRating(parseInt(this.getAttribute('data-rating')));
+            }));
+            
+            document.getElementById('submit-rating').addEventListener('click', submitRating);
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+
+            document.getElementById('report-congestion-btn').addEventListener('click', () => enableReportMode('congestion'));
+
+document.querySelectorAll('.congestion-btn').forEach(b => b.addEventListener('click', function() {
+    selectCongestion(parseInt(this.getAttribute('data-congestion')));
+}));
+
+document.getElementById('submit-congestion').addEventListener('click', submitCongestion);
+document.getElementById('close-congestion-modal').addEventListener('click', closeCongestionModal);
+            
+            document.getElementById('bike-rack-switch').addEventListener('click', function() {
+                this.classList.toggle('active');
+                toggleBikeRacks(this.classList.contains('active'));
+            });
+            
+            document.getElementById('skateboard-rack-switch').addEventListener('click', function() {
+                this.classList.toggle('active');
+                toggleSkateboardRacks(this.classList.contains('active'));
+            });
+            
+            document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+            
+            // Initialize racks
+            toggleBikeRacks(true);
+            toggleSkateboardRacks(true);
+            
+            console.log('✅ Skate Scout Ready!');
+        });
+    </script>
+</body>
+</html>
