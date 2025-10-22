@@ -5,6 +5,11 @@
 
 ---
 
+🎯 **Check out our project on Devpost:**  
+👉 [https://devpost.com/software/skate-scout](https://devpost.com/software/skate-scout?ref_content=user-portfolio&ref_feature=in_progress)
+
+---
+
 ## 🚀 Inspiration
 For a long time, students have been trying to perfect **TAMU Bus Routes**, a platform providing real-time bus information.  
 Yet, it felt strange and counterintuitive that **no such system existed for micromobility** — even though **Texas A&M has one of the largest campuses in the United States**.  
