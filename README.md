@@ -1,4 +1,4 @@
-# HowdyHack
+# HowdyHack 2025
 
 # 🛹 Skate Scout  
 ### Smart, Safe, and Smooth Routes for Micromobility on Texas A&M Campus  
